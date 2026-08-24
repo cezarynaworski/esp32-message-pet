@@ -1,0 +1,11 @@
+menu "Display configuration"
+
+config SCREEN_ROTATION
+    int "Screen rotation"
+    default 0
+    help
+        Screen rotation:
+        0 = normal
+        1 = rotated
+
+endmenu
