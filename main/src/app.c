@@ -105,6 +105,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
         if (app_state->telegram_msg_memory->currSize > 0) {
           app_state->current_state = SHOW_NEXT_MESSAGE_STATE;
           dequeue(telegram_msg_memory_queue, &(app_state->current_message));
+          app_state->pending_telegram_message = false; //we dont want to do animation if its pending
         } else {
           go_idle_state(app_state);
         }
@@ -112,12 +113,14 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
 
       case PET_MITEM:
         app_state->current_state = CAT_ANIMATION_STATE;
-        // app_state->current_animation = &cat_petting_animation;
+        app_state->current_animation = &cat_petting_animation;
+        animation_reset(app_state->current_animation);
         break;
 
       case FEED_MITEM:
         app_state->current_state = CAT_ANIMATION_STATE;
-        // app_state->current_animation = &cat_feeding_animation;
+        app_state->current_animation = &cat_eating_animation;
+        animation_reset(app_state->current_animation);
         break;
 
       default:
@@ -162,12 +165,12 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
   }
 }
 
-static void render_app(AppState *app_state, uint32_t dt) {
+static void render_app(AppState *app_state, uint64_t dt) {
   bool should_flush = false;
   uint32_t app_event;
   switch (app_state->current_state) {
   case MENU_STATE:
-    if (render_menu(app_state->menu, false)) {
+    if (render_menu(app_state->menu, (app_state->telegram_msg_memory->currSize>0) )) {
       should_flush = true;
     }
     break;
@@ -212,11 +215,11 @@ void app_task(void *pvParameters) {
   init_app_state(&app_state);
   // at the begginign we should also take from nvm queue with telegram messages
 
-  uint32_t last_time = esp_timer_get_time() / 1000;
+  uint64_t last_time = esp_timer_get_time() / 1000;
   while (1) {
     // Take loop time
-    uint32_t now = esp_timer_get_time() / 1000;
-    uint32_t dt = now - last_time;
+    uint64_t now = esp_timer_get_time() / 1000;
+    uint64_t dt = now - last_time;
     last_time = now;
 
     // Check Telegram Queue
@@ -253,3 +256,12 @@ void app_task(void *pvParameters) {
 
 // TODO - zrobic ustawienia? PWM sterowanie podswietleniem? :)
 //  w ustawieniach moze tez byc timeout bo jakim przygasza sie wyswietlacz
+
+
+//TODO na jutro:
+/*
+
+2. dorobienie animacji feed i pet - akywacja podczas wcisniecia 
+
+
+*/

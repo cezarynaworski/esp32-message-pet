@@ -1,6 +1,7 @@
 #include "graphic.h"
 #include "animation/animation.h"
 #include "app.h"
+#include "esp_timer.h"
 #include "fonts/PressStart2P13.h"
 #include "fonts/PressStart2P14.h"
 #include "fonts/Tiny16.h"
@@ -383,21 +384,50 @@ bool render_animation(Animation *anim) {
 }
 
 bool render_menu(Menu *menu, bool new_message) {
-  if (menu->next_item == menu->current_item)
+
+  static bool blink = false;
+  static bool change_flushed = false;
+
+  static uint64_t last = 0;
+
+  uint64_t now;
+  now = esp_timer_get_time();
+  if (now - last > 500000) {
+    blink = !blink;
+    if (new_message)
+      change_flushed = false;
+    last = now;
+  }
+
+  if (menu->next_item != menu->current_item)
+    change_flushed = false;
+
+  if (change_flushed)
     return false;
+
   clear_background(BLACK);
+
   for (int i = 0; i < menu->menu_count; i++) {
-    if (menu->next_item == i) {
-      // draw_rect(10, 10 *i , LCD_WIDTH, 16, WHITE);
-      draw_rect(0, 4 + i * 30, MAX_WIDTH, 30, true, BLUE);
-      draw_text(10, 13 + i * 30, menu->menu_items[i], &PressStart2P14, WHITE, 1,
-                MAX_WIDTH, NULL);
+
+    if (menu->next_item == i) { // highlight next_item
+      draw_rect(0, 3 + i * 30, MAX_WIDTH, 30, true, BLUE);
+
       menu->current_item = (MenuItem)i; // current item is next_item
+    }
+
+    draw_text(27, 13 + i * 30, menu->menu_items[i], &PressStart2P14, WHITE, 1,
+              MAX_WIDTH, NULL);
+    // draw_sprite(3, 10, &message_mail, false);
+
+    if (i == SHOW_MESSAGE_MITEM) {
+      if (!new_message || !blink) {
+        draw_sprite(4, 10 + i * 30, menu->menu_sprites[i], false);
+      }
     } else {
-      draw_text(10, 13 + i * 30, menu->menu_items[i], &PressStart2P14, WHITE, 1,
-                MAX_WIDTH, NULL);
+      draw_sprite(4, 10 + i * 30, menu->menu_sprites[i], false);
     }
   }
+  change_flushed = true;
   return true;
 }
 

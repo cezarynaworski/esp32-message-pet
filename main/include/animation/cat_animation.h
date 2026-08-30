@@ -20,7 +20,7 @@ extern Animation cat_blinking_animation;
 extern Animation cat_look_around_animation;
 extern Animation cat_look_left_right_animation;
 extern Animation cat_new_message_animation;
-
-
+extern Animation cat_eating_animation;
+extern Animation cat_petting_animation;
 
 #endif

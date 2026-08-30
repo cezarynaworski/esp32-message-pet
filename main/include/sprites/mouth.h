@@ -8,6 +8,7 @@ extern const Sprite mouth_eating_1;
 extern const Sprite mouth_eating_2;
 extern const Sprite mouth_eating_3;
 extern const Sprite mouth_eating_4;
+extern const Sprite mouth_eating_5;
 extern const Sprite mouth_excited_1;
 extern const Sprite mouth_excited_2;
 extern const Sprite mouth_kiss;

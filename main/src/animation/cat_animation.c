@@ -190,6 +190,136 @@ static const Sprite *cat_new_message_layers_7[CAT_LAYER_COUNT] = {
     [CAT_LAYER_RIGHT_FLUSH] = &flush};
 
 static const LayerOffset new_message_text_offset = {.x = 3, .y = 20};
+
+// Cat Eating
+
+static const Sprite *cat_eating_layers_1[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye,
+    [CAT_LAYER_RIGHT_EYE] = &eye,
+    [CAT_LAYER_MOUTH] = &mouth_tongue_2,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_eating_layers_2[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye,
+    [CAT_LAYER_RIGHT_EYE] = &eye,
+    [CAT_LAYER_MOUTH] = &mouth_notice,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_eating_layers_3[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_star,
+    [CAT_LAYER_RIGHT_EYE] = &eye_star,
+    [CAT_LAYER_MOUTH] = &mouth_excited_1,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_eating_layers_4[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_star,
+    [CAT_LAYER_RIGHT_EYE] = &eye_star,
+    [CAT_LAYER_MOUTH] = &mouth_excited_2,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_eating_layers_5[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_eating_1,
+    [CAT_LAYER_RIGHT_EYE] = &eye_eating_1,
+    [CAT_LAYER_MOUTH] = &mouth_eating_1,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_eating_layers_6[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_eating_2,
+    [CAT_LAYER_RIGHT_EYE] = &eye_eating_2,
+    [CAT_LAYER_MOUTH] = &mouth_eating_2,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_eating_layers_7[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_MOUTH] = &mouth_eating_3,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker_shake_2,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake_2};
+
+static const Sprite *cat_eating_layers_8[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_MOUTH] = &mouth_eating_4,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake};
+
+static const Sprite *cat_eating_layers_9[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_MOUTH] = &mouth_eating_5,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake};
+
+static const Sprite *cat_eating_layers_10[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_MOUTH] = &mouth_tongue_1,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_eating_layers_11[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed_happy,
+    [CAT_LAYER_MOUTH] = &mouth_tongue_basic,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+// cat petting
+static const Sprite *cat_petting_layers_1[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth_eating_5,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_petting_layers_2[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth_talking,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_petting_layers_3[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,   [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth_excited_1, [CAT_LAYER_LEFT_WHISKER] = &whisker_shake_2,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake_2, [CAT_LAYER_LEFT_FLUSH] = &flush,
+    [CAT_LAYER_RIGHT_FLUSH] = &flush};
+
+static const Sprite *cat_petting_layers_4[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,   [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth_excited_2,           [CAT_LAYER_LEFT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake, [CAT_LAYER_LEFT_FLUSH] = &flush,
+    [CAT_LAYER_RIGHT_FLUSH] = &flush};
+
+static const Sprite *cat_petting_layers_5[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_heart,   [CAT_LAYER_RIGHT_EYE] = &eye_heart,
+    [CAT_LAYER_MOUTH] = &mouth_excited_2,    [CAT_LAYER_LEFT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake, [CAT_LAYER_LEFT_FLUSH] = &flush,
+    [CAT_LAYER_RIGHT_FLUSH] = &flush};
+static const Sprite *cat_petting_layers_6[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_heart,
+    [CAT_LAYER_RIGHT_EYE] = &eye_heart,
+    [CAT_LAYER_MOUTH] = &mouth_excited_2,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_LEFT_FLUSH] = &flush,
+    [CAT_LAYER_RIGHT_FLUSH] = &flush};
+
+static const Sprite *cat_petting_layers_7[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth_kiss,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker_shake,
+    [CAT_LAYER_LEFT_FLUSH] = &flush,
+    [CAT_LAYER_RIGHT_FLUSH] = &flush};
+
 // Default layers positions
 static const LayerInfo cat_default_layer_info[CAT_LAYER_COUNT] = {
     [CAT_LAYER_LEFT_EYE] = {.x = 20, .y = 25, .width = 40, .height = 45},
@@ -297,6 +427,36 @@ Animation cat_look_left_right_animation = {
     .loop = true,
 };
 
+Animation cat_eating_animation = {
+    .frames =
+        (const AnimationFrame[]){
+
+            {.layers = cat_eating_layers_1, .duration_ms = 400},
+
+            {.layers = cat_eating_layers_2, .duration_ms = 500},
+
+            {.layers = cat_eating_layers_3, .duration_ms = 150},
+            {.layers = cat_eating_layers_4, .duration_ms = 700},
+            {.layers = cat_eating_layers_5, .duration_ms = 300},
+            {.layers = cat_eating_layers_6, .duration_ms = 300},
+            {.layers = cat_eating_layers_7, .duration_ms = 300},
+            {.layers = cat_eating_layers_8, .duration_ms = 400},
+
+            {.layers = cat_eating_layers_9, .duration_ms = 400},
+
+            {.layers = cat_eating_layers_10, .duration_ms = 400},
+            {.layers = cat_eating_layers_11, .duration_ms = 1000},
+
+        },
+    .layer_info = cat_default_layer_info,
+
+    .layer_count = CAT_LAYER_COUNT,
+    .frame_count = 11,
+    .loop = false,
+};
+
+// cat sleeping animation
+
 Animation cat_new_message_animation = {
     .frames =
         (const AnimationFrame[]){
@@ -320,13 +480,31 @@ Animation cat_new_message_animation = {
     .layer_count = CAT_LAYER_COUNT,
     .frame_count = 7,
     .loop = false,
+
 };
 
-// cat sleeping animation
+Animation cat_petting_animation = {
+    .frames =
+        (const AnimationFrame[]){
 
-// cat eating animation
+            {.layers = cat_petting_layers_1, .duration_ms = 200},
 
-// cat_new_message_idle
+            {.layers = cat_petting_layers_2, .duration_ms = 200},
+
+            {.layers = cat_petting_layers_3, .duration_ms = 200},
+            {.layers = cat_petting_layers_4, .duration_ms = 600},
+            {.layers = cat_petting_layers_5, .duration_ms = 400},
+            {.layers = cat_petting_layers_6, .duration_ms = 400},
+            {.layers = cat_petting_layers_7, .duration_ms = 1000},
+
+        },
+    .layer_info = cat_default_layer_info,
+
+    .layer_count = CAT_LAYER_COUNT,
+    .frame_count = 7,
+    .loop = false,
+
+};
 
 // cat sad animation (hungry)
 
