@@ -9,6 +9,7 @@
 #include "telegram_client.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include "app.h"
 #define LCD_WIDTH 128
 #define LCD_HEIGHT 160
 
@@ -43,6 +44,7 @@ void draw_sprite(int x, int y, const Sprite *sprite, bool mirror_horizontal);
 bool render_animation(Animation *anim);
 bool render_menu(Menu *menu, bool new_message);
 void render_messages(TelegramMessage *message, uint8_t msg_left);
+bool render_hud(AppState *app_state, bool animation_changed);
 
 #if CONFIG_SCREEN_ROTATION == 0
 #define draw_pixel draw_pixel_portrait

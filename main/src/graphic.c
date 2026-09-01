@@ -9,6 +9,7 @@
 #include "menu.h"
 #include "my_cololors.h"
 #include "my_queue.h"
+#include "sprites/hud.h"
 #include "sprites/menu_sprites.h"
 #include "sprites/sprite.h"
 #include "stdio.h"
@@ -385,6 +386,8 @@ bool render_animation(Animation *anim) {
 
 bool render_menu(Menu *menu, bool new_message) {
 
+  bool sprites = false;
+  uint8_t x_text_offset = 5;
   static bool blink = false;
   static bool change_flushed = false;
 
@@ -405,6 +408,11 @@ bool render_menu(Menu *menu, bool new_message) {
   if (change_flushed)
     return false;
 
+  if (menu->menu_sprites) {
+    sprites = true;
+    x_text_offset = 27;
+  }
+
   clear_background(BLACK);
 
   for (int i = 0; i < menu->menu_count; i++) {
@@ -415,16 +423,18 @@ bool render_menu(Menu *menu, bool new_message) {
       menu->current_item = (MenuItem)i; // current item is next_item
     }
 
-    draw_text(27, 13 + i * 30, menu->menu_items[i], &PressStart2P14, WHITE, 1,
-              MAX_WIDTH, NULL);
+    draw_text(x_text_offset, 13 + i * 30, menu->menu_items[i], &PressStart2P13,
+              WHITE, 1, MAX_WIDTH, NULL);
     // draw_sprite(3, 10, &message_mail, false);
 
-    if (i == SHOW_MESSAGE_MITEM) {
-      if (!new_message || !blink) {
+    if (sprites) {
+      if (i == SHOW_MESSAGE_MITEM) {
+        if (!new_message || !blink) {
+          draw_sprite(4, 10 + i * 30, menu->menu_sprites[i], false);
+        }
+      } else {
         draw_sprite(4, 10 + i * 30, menu->menu_sprites[i], false);
       }
-    } else {
-      draw_sprite(4, 10 + i * 30, menu->menu_sprites[i], false);
     }
   }
   change_flushed = true;
@@ -455,4 +465,20 @@ void render_messages(TelegramMessage *message, uint8_t msg_left) {
     draw_text(45, 35 + font->lineHeight * 2, remaining_text, font, WHITE, 3,
               MAX_WIDTH, NULL);
   }
+}
+
+bool render_hud(AppState *app_state, bool animation_changed) {
+  if (app_state->hud_rendered == true && !animation_changed) {
+    return false;
+  }
+  //draw_rect(0, 0, MAX_WIDTH, 15, false, BLUE);
+  if (app_state->telegram_msg_memory->currSize > 0) {
+    draw_sprite(MAX_WIDTH-20, 0, &message_new, 0);
+  }
+
+  draw_sprite(5,0, &hud_heart_50, false);
+  draw_sprite(25,0, &hud_hungry_50, false);
+
+  app_state->hud_rendered = true;
+  return true;
 }

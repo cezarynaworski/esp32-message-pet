@@ -20,6 +20,7 @@ idf_component_register(SRCS "src/main.c"
                             "src/fonts/PressStart2P14.c"
                             "src/sprites/menu_sprites.c"
                             "src/fonts/Tiny16.c"
+                            "src/sprites/hud.c"
                     INCLUDE_DIRS "include" "." 
                     PRIV_REQUIRES json 
                                   esp_wifi 

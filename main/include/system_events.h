@@ -9,7 +9,8 @@ typedef enum {
   MENU_TIMEOUT = (1 << 2),
   NEW_TELEGRAM_MESSAGE = (1<<3),
   ANIMATION_FINISHED = (1<<4),
-  NEW_MESSAGE_SHOWN = (1<<5)
+  NEW_MESSAGE_SHOWN = (1<<5),
+  HUD_TIMEOUT = (1<<6)
 } AppEventFlags;
 
 typedef enum {
