@@ -47,7 +47,8 @@ void display_init(void) {
 
   gpio_reset_pin(PIN_NUM_BCKL);
   gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
-  gpio_set_level(PIN_NUM_BCKL, 1); // Turn on backlight
+  gpio_set_level(PIN_NUM_BCKL, 0); // Turn off backlight
+  gpio_hold_dis(PIN_NUM_BCKL);
 
   spi_bus_config_t buscfg = {
       .mosi_io_num = PIN_NUM_MOSI,

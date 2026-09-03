@@ -1,7 +1,7 @@
 #ifndef BUTTONS_H
 #define BUTTONS_H
 
-#define MAIN_BUTTON 19
+#define MAIN_BUTTON 25
 #define TOUCH_BUTTON 20
 
 #define ESP_INTR_FLAG_DEFAULT 0

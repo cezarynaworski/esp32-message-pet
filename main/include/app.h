@@ -5,11 +5,13 @@
 #include "my_queue.h"
 #include "telegram_client.h"
 #include "pet.h"
+#include <time.h>
+#include <sys/time.h>
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #define MENU_TIMEOUT_MS 4000
 #define HUD_TIMEOUT_MS 3000
+#define SLEEP_TIMEOUT_MS 10000
 typedef enum {
   MENU_STATE,
   MENU_SETTINGS_STATE,
@@ -31,9 +33,9 @@ typedef struct {
   bool pending_telegram_message;
   bool hud_rendered;
   TelegramMessage current_message;
-  CatState cat_state;
+  PetStatus pet_status;
+  struct timeval sleep_enter_time;
 } AppState;
-
 
 
 

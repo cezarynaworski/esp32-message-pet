@@ -11,6 +11,13 @@
 #include "system_events.h"
 #include "telegram_client.h"
 #include <stdint.h>
+#include "driver/rtc_io.h"
+#include "esp_sleep.h"
+#include "nvs_flash.h"
+#include "nvs.h"
+
+
+
 static const char *TAG = "main";
 
 
@@ -19,7 +26,7 @@ static const char *TAG = "main";
 // dodanie zeby tylko od jednego id odbieralo - validacja id
 
 void app_main(void) {
-
+  
   // Initialize NVS
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
@@ -28,10 +35,6 @@ void app_main(void) {
     ret = nvs_flash_init();
   }
   ESP_ERROR_CHECK(ret);
-
-  // Take values from NVS...
-
-  //...
 
   events_init();
   display_init();
@@ -50,6 +53,8 @@ void app_main(void) {
   // Init WIFI
   wifi_init_sta();
 
+
+ 
   xTaskCreate(&telegram_task, "telegram_task", 12000, NULL, 5, NULL);
   // create button task
   //...
@@ -58,5 +63,8 @@ void app_main(void) {
 
   xTaskCreate(&buttons_task, "button_task", 2048, NULL, 5, NULL);
 
+  //vTaskDelay(pdMS_TO_TICKS(100)); // Wait for tasks to initialize
+  gpio_set_level(PIN_NUM_BCKL, 1); //turn on backlight after everythung is initialized
+
   vTaskDelete(NULL);
-}
+} 

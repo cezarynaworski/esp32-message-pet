@@ -6,7 +6,8 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "system_events.h"
-
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
 #include <stdint.h>
 
 #include <string.h>
@@ -85,6 +86,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg) {
 }
 
 void buttons_init() {
+  
   gpio_config_t io_conf = {};
 
   io_conf.mode = GPIO_MODE_INPUT;
@@ -105,4 +107,13 @@ void buttons_init() {
   const esp_timer_create_args_t long_press_timer_args = {
       .callback = &long_press_callback, .name = "long_press"};
   ESP_ERROR_CHECK(esp_timer_create(&long_press_timer_args, &long_press_timer));
+
+
+  //config waking up from deep sleep on button press
+  ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(MAIN_BUTTON, 0));
+  ESP_ERROR_CHECK(rtc_gpio_pullup_en(MAIN_BUTTON));
+  gpio_deep_sleep_hold_en();
+  
+ 
+   
 }

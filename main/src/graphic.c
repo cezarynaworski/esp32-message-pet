@@ -471,13 +471,34 @@ bool render_hud(AppState *app_state, bool animation_changed) {
   if (app_state->hud_rendered == true && !animation_changed) {
     return false;
   }
-  //draw_rect(0, 0, MAX_WIDTH, 15, false, BLUE);
+  // draw_rect(0, 0, MAX_WIDTH, 15, false, BLUE);
   if (app_state->telegram_msg_memory->currSize > 0) {
-    draw_sprite(MAX_WIDTH-20, 0, &message_new, 0);
+    draw_sprite(MAX_WIDTH - 20, 0, &message_new, 0);
   }
+  float hunger = app_state->pet_status.hungry_status;
+  float happines = app_state->pet_status.happiness;
 
-  draw_sprite(5,0, &hud_heart_50, false);
-  draw_sprite(25,0, &hud_hungry_50, false);
+  if (happines > 75)
+    draw_sprite(5, 0, &hud_heart_100, false);
+  else if (happines > 50)
+    draw_sprite(5, 0, &hud_heart_75, false);
+  else if (happines > 25)
+    draw_sprite(5, 0, &hud_heart_50, false);
+  else if (happines > 10)
+    draw_sprite(5, 0, &hud_heart_25, false);
+  else
+    draw_sprite(5, 0, &hud_heart_0, false);
+
+  if (hunger > 75)
+    draw_sprite(25, 0, &hud_hungry_100, false);
+  else if (hunger > 50)
+    draw_sprite(25, 0, &hud_hungry_75, false);
+  else if (hunger > 25)
+    draw_sprite(25, 0, &hud_hungry_50, false);
+  else if (hunger > 10)
+    draw_sprite(25, 0, &hud_hungry_25, false);
+  else
+    draw_sprite(25, 0, &hud_hungry_0, false);
 
   app_state->hud_rendered = true;
   return true;

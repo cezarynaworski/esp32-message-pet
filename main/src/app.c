@@ -2,25 +2,31 @@
 #include "app.h"
 #include "animation/animation.h"
 #include "animation/cat_animation.h"
+#include "buttons.h"
 #include "display_manager.h"
 #include "esp_log.h"
+#include "esp_sleep.h"
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
 #include "graphic.h"
 #include "menu.h"
-#include "my_cololors.h"
 #include "my_queue.h"
 #include "pet.h"
 #include "system_events.h"
 #include "telegram_client.h"
 #include <stdint.h>
+
+#include "macro.h"
+#include "pet.h"
+
+RTC_DATA_ATTR AppState app_state;
+
 static const char *tag = "robot";
 
 static esp_timer_handle_t menu_timeout_timer;
 static esp_timer_handle_t hud_timeout_timer;
-static esp_timer_handle_t sleep_timeout;
-
+static esp_timer_handle_t sleep_timeout_timer;
 
 static void menu_timeout_callback(void *arg) {
   BaseType_t higher_priority_task_woken = pdFALSE;
@@ -34,15 +40,26 @@ static void hud_timeout_callback(void *arg) {
   xQueueSendFromISR(app_event_queue, &app_event, &higher_priority_task_woken);
 }
 
+static void sleep_timeout_callback(void *arg) {
+  gpio_set_level(PIN_NUM_BCKL, 0);
+  gpio_hold_en(PIN_NUM_BCKL);
+  gettimeofday(&(app_state.sleep_enter_time), NULL);
+  esp_deep_sleep_start();
+}
+
 static myQueue *telegram_msg_memory_queue;
 static myQueue *local_app_event_queue;
 
 // help function so i dont to repeat it every time
 static void go_idle_state(AppState *app_state) {
   app_state->current_state = CAT_IDLE_STATE;
+
+  //add calculate_Pet_state to define animation
+
   app_state->current_animation = &cat_blinking_animation;
   animation_reset(app_state->current_animation);
-  // esp_timer_stop(menu_timeout_timer);
+
+  esp_timer_start_once(sleep_timeout_timer, SLEEP_TIMEOUT_MS * 1000ULL);
 }
 
 static void check_pending_telegram_msg(AppState *app_state) {
@@ -66,14 +83,32 @@ static void render_default(AppState *app_state, bool *should_flush,
 
 static void init_app_state(AppState *app_state) {
 
+  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+
+  if (cause == ESP_SLEEP_WAKEUP_EXT0) {
+    // obsługa wake-up
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    uint64_t sleep_time_ms =
+        (now.tv_sec - app_state->sleep_enter_time.tv_sec) * 1000 +
+        (now.tv_usec - app_state->sleep_enter_time.tv_usec) / 1000;
+    update_pet_status(&app_state->pet_status, sleep_time_ms);
+    ESP_LOGW(tag, "Deep sleep wakeup, sleep duration:%llu", sleep_time_ms);
+  } else {
+    app_state->pet_status.happiness = 100;
+    app_state->pet_status.hungry_status = 100;
+  }
+
+   //add calculate_Pet_state to define animation
+
+   
   app_state->current_animation = &cat_blinking_animation;
   app_state->current_state = CAT_IDLE_STATE;
   app_state->menu = &menu;
   app_state->telegram_msg_memory = telegram_msg_memory_queue;
   app_state->settings = &settings;
 
-  app_state->cat_state.happiness = 100;
-  app_state->cat_state.hungry_status = 100;
+  esp_timer_start_once(sleep_timeout_timer, SLEEP_TIMEOUT_MS * 1000ULL);
 }
 
 static void update_app_state(uint32_t app_event, AppState *app_state) {
@@ -81,7 +116,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
   case BUTTON1_SINGLE_CLICK:
 
     esp_timer_stop(menu_timeout_timer);
-    
+    esp_timer_stop(sleep_timeout_timer);
     switch (app_state->current_state) {
 
     case READING_MESSAGE_STATE:
@@ -92,12 +127,11 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
         go_idle_state(app_state);
       }
       break;
-      break;
 
     case MENU_STATE:
       app_state->menu->next_item =
           (MenuItem)((app_state->menu->current_item + 1) % END_OF_MENU);
-      esp_timer_start_once(menu_timeout_timer, MENU_TIMEOUT_MS * 1000);
+      esp_timer_start_once(menu_timeout_timer, MENU_TIMEOUT_MS * 1000ULL);
       // restart timer during changing item
 
       break;
@@ -106,7 +140,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
       app_state->settings->next_item =
           (SettingsItem)((app_state->settings->current_item + 1) %
                          END_OF_SETTINGS);
-      esp_timer_start_once(menu_timeout_timer, MENU_TIMEOUT_MS * 1000);
+      esp_timer_start_once(menu_timeout_timer, MENU_TIMEOUT_MS * 1000ULL);
       break;
     case CAT_ANIMATION_STATE:
       break;
@@ -124,9 +158,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
     default:
       // open hud
       esp_timer_stop(hud_timeout_timer);
-      esp_timer_start_once(hud_timeout_timer,
-                           HUD_TIMEOUT_MS *
-                               1000);
+      esp_timer_start_once(hud_timeout_timer, HUD_TIMEOUT_MS * 1000ULL);
       app_state->current_state = HUD_STATE;
       app_state->hud_rendered = false;
       break;
@@ -136,7 +168,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
   case BUTTON1_LONG_PRESS:
 
     esp_timer_stop(menu_timeout_timer);
-
+    esp_timer_stop(sleep_timeout_timer);
     switch (app_state->current_state) {
 
     case MENU_STATE:
@@ -158,9 +190,10 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
         app_state->current_state = CAT_ANIMATION_STATE;
         app_state->current_animation = &cat_petting_animation;
         animation_reset(app_state->current_animation);
-          
-        app_state->cat_state.happiness=MIN(100,app_state->cat_state.happiness+25);
-        
+
+        app_state->pet_status.happiness =
+            MIN(100, app_state->pet_status.happiness + 25);
+
         break;
 
       case FEED_MITEM:
@@ -168,14 +201,15 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
         app_state->current_animation = &cat_eating_animation;
         animation_reset(app_state->current_animation);
 
-        app_state->cat_state.hungry_status=MIN(100,app_state->cat_state.happiness+50);
+        app_state->pet_status.hungry_status =
+            MIN(100, app_state->pet_status.hungry_status + 50);
 
         break;
 
       case SETTINGS_MITEM:
         esp_timer_start_once(menu_timeout_timer,
                              MENU_TIMEOUT_MS *
-                                 1000); // start timer during menu entry
+                                 1000ULL); // start timer during menu entry
         app_state->current_state = MENU_SETTINGS_STATE;
         app_state->settings->current_item = END_OF_SETTINGS;
         app_state->settings->next_item = SCREEN_LIGHT_SITEM;
@@ -214,7 +248,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
 
   case HUD_TIMEOUT:
     go_idle_state(app_state);
-    esp_timer_stop(hud_timeout_timer);
+    // esp_timer_stop(hud_timeout_timer);
     break;
 
   case NEW_TELEGRAM_MESSAGE:
@@ -287,14 +321,8 @@ static void render_app(AppState *app_state, uint64_t dt) {
     display_flush();
 }
 
-
-
-void update_cat_state(CatState cat_state)
-  {
-
-  }
 void app_task(void *pvParameters) {
-  AppState app_state = {};
+
   uint32_t app_event = -1;
   uint32_t telegram_event = NEW_TELEGRAM_MESSAGE;
 
@@ -312,6 +340,12 @@ void app_task(void *pvParameters) {
       .callback = &hud_timeout_callback, .name = "hud_timeout"};
   ESP_ERROR_CHECK(
       esp_timer_create(&hud_timeout_timer_args, &hud_timeout_timer));
+
+  const esp_timer_create_args_t sleep_timeout_timer_args = {
+      .callback = &sleep_timeout_callback,
+      .name = "sleep_timeout",};
+  ESP_ERROR_CHECK(
+      esp_timer_create(&sleep_timeout_timer_args, &sleep_timeout_timer));
 
   init_app_state(&app_state);
   // at the begginign we should also take from nvm queue with telegram messages
@@ -349,7 +383,7 @@ void app_task(void *pvParameters) {
 
     render_app(&app_state, dt);
 
-    //ESP_LOGI(tag, "state: %d", app_state.current_state);
+    // ESP_LOGI(tag, "state: %d", app_state.current_state);
     vTaskDelay(pdMS_TO_TICKS(16)); // Adjust the delay as needed
   }
 }
