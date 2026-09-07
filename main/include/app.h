@@ -28,7 +28,6 @@ typedef struct {
   Animation *current_animation;
   CurrentState current_state;
   Menu *menu;
-  Menu *settings;
   myQueue *telegram_msg_memory;
   bool pending_telegram_message;
   bool hud_rendered;

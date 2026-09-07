@@ -9,24 +9,28 @@
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
+#include "freertos/semphr.h"
 #include "graphic.h"
+#include "macro.h"
 #include "menu.h"
 #include "my_queue.h"
 #include "pet.h"
 #include "system_events.h"
 #include "telegram_client.h"
 #include <stdint.h>
-
-#include "macro.h"
-#include "pet.h"
-
-RTC_DATA_ATTR AppState app_state;
-
 static const char *tag = "robot";
+
+RTC_DATA_ATTR static AppState app_state;
+static myQueue *telegram_msg_memory_queue;
+static myQueue *local_app_event_queue;
+
+SemaphoreHandle_t pet_stat_Mutex;
 
 static esp_timer_handle_t menu_timeout_timer;
 static esp_timer_handle_t hud_timeout_timer;
 static esp_timer_handle_t sleep_timeout_timer;
+
+static esp_timer_handle_t pet_update_timer;
 
 static void menu_timeout_callback(void *arg) {
   BaseType_t higher_priority_task_woken = pdFALSE;
@@ -46,15 +50,48 @@ static void sleep_timeout_callback(void *arg) {
   gettimeofday(&(app_state.sleep_enter_time), NULL);
   esp_deep_sleep_start();
 }
+static void pet_update_callback(void *arg) {
 
-static myQueue *telegram_msg_memory_queue;
-static myQueue *local_app_event_queue;
+  if (xSemaphoreTake(pet_stat_Mutex, portMAX_DELAY) == pdTRUE) {
+    update_pet_status(&(app_state.pet_status), 1);
+    xSemaphoreGive(pet_stat_Mutex);
+  }
+}
+
+static void timers_init() {
+  // create timer for menu timeout
+  const esp_timer_create_args_t menu_timeout_timer_args = {
+      .callback = &menu_timeout_callback, .name = "menu_timeout"};
+  ESP_ERROR_CHECK(
+      esp_timer_create(&menu_timeout_timer_args, &menu_timeout_timer));
+
+  // create timer for hud timeout
+  const esp_timer_create_args_t hud_timeout_timer_args = {
+      .callback = &hud_timeout_callback, .name = "hud_timeout"};
+  ESP_ERROR_CHECK(
+      esp_timer_create(&hud_timeout_timer_args, &hud_timeout_timer));
+
+  // create timer for sleep timeout
+  const esp_timer_create_args_t sleep_timeout_timer_args = {
+      .callback = &sleep_timeout_callback,
+      .name = "sleep_timeout",
+  };
+  ESP_ERROR_CHECK(
+      esp_timer_create(&sleep_timeout_timer_args, &sleep_timeout_timer));
+
+  // create timer for sleep timeout
+  const esp_timer_create_args_t pet_update_timer_args = {
+      .callback = &pet_update_callback,
+      .name = "pet_update",
+  };
+  ESP_ERROR_CHECK(esp_timer_create(&pet_update_timer_args, &pet_update_timer));
+}
 
 // help function so i dont to repeat it every time
 static void go_idle_state(AppState *app_state) {
   app_state->current_state = CAT_IDLE_STATE;
 
-  //add calculate_Pet_state to define animation
+  // add calculate_Pet_state to define animation
 
   app_state->current_animation = &cat_blinking_animation;
   animation_reset(app_state->current_animation);
@@ -99,19 +136,22 @@ static void init_app_state(AppState *app_state) {
     app_state->pet_status.hungry_status = 100;
   }
 
-   //add calculate_Pet_state to define animation
+  // add calculate_Pet_state to define animation
 
-   
   app_state->current_animation = &cat_blinking_animation;
   app_state->current_state = CAT_IDLE_STATE;
   app_state->menu = &menu;
   app_state->telegram_msg_memory = telegram_msg_memory_queue;
-  app_state->settings = &settings;
+  // app_state->settings = &settings;
 
   esp_timer_start_once(sleep_timeout_timer, SLEEP_TIMEOUT_MS * 1000ULL);
+
+  esp_timer_start_periodic(pet_update_timer, 60 * 1000000ULL);
 }
 
 static void update_app_state(uint32_t app_event, AppState *app_state) {
+
+  Menu *settings = menu_get_submenu_at(app_state->menu, SETTINGS_MITEM);
   switch (app_event) {
   case BUTTON1_SINGLE_CLICK:
 
@@ -131,15 +171,28 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
     case MENU_STATE:
       app_state->menu->next_item =
           (MenuItem)((app_state->menu->current_item + 1) % END_OF_MENU);
+
+      if (app_state->menu->next_item > 0 &&
+          app_state->menu->next_item % MENU_VISIBLE_ITEMS == 0) {
+        app_state->menu->scroll_offset += MENU_VISIBLE_ITEMS;
+      }
       esp_timer_start_once(menu_timeout_timer, MENU_TIMEOUT_MS * 1000ULL);
       // restart timer during changing item
 
       break;
 
     case MENU_SETTINGS_STATE:
-      app_state->settings->next_item =
-          (SettingsItem)((app_state->settings->current_item + 1) %
-                         END_OF_SETTINGS);
+      settings->next_item = (settings->current_item + 1) % END_OF_SETTINGS;
+
+      if (settings->next_item > 0 &&
+          settings->next_item % MENU_VISIBLE_ITEMS == 0) {
+        settings->scroll_offset += MENU_VISIBLE_ITEMS;
+      }
+      if (settings->next_item == 0) {
+        settings->scroll_offset = 0;
+    }
+      ESP_LOGI(tag,"scroll_offset:%d, next item: %d", settings->scroll_offset, settings->next_item);
+
       esp_timer_start_once(menu_timeout_timer, MENU_TIMEOUT_MS * 1000ULL);
       break;
     case CAT_ANIMATION_STATE:
@@ -153,6 +206,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
       app_state->current_state = MENU_STATE;
       app_state->menu->current_item = END_OF_MENU;
       app_state->menu->next_item = SHOW_MESSAGE_MITEM;
+      app_state->menu->scroll_offset=0;
       esp_timer_stop(hud_timeout_timer);
       break;
     default:
@@ -191,8 +245,12 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
         app_state->current_animation = &cat_petting_animation;
         animation_reset(app_state->current_animation);
 
-        app_state->pet_status.happiness =
-            MIN(100, app_state->pet_status.happiness + 25);
+        if (xSemaphoreTake(pet_stat_Mutex, portMAX_DELAY) == pdTRUE) {
+          app_state->pet_status.happiness =
+              MIN(100, app_state->pet_status.happiness + 25);
+
+          xSemaphoreGive(pet_stat_Mutex);
+        }
 
         break;
 
@@ -200,10 +258,11 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
         app_state->current_state = CAT_ANIMATION_STATE;
         app_state->current_animation = &cat_eating_animation;
         animation_reset(app_state->current_animation);
-
-        app_state->pet_status.hungry_status =
-            MIN(100, app_state->pet_status.hungry_status + 50);
-
+        if (xSemaphoreTake(pet_stat_Mutex, portMAX_DELAY) == pdTRUE) {
+          app_state->pet_status.hungry_status =
+              MIN(100, app_state->pet_status.hungry_status + 50);
+          xSemaphoreGive(pet_stat_Mutex);
+        }
         break;
 
       case SETTINGS_MITEM:
@@ -211,8 +270,9 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
                              MENU_TIMEOUT_MS *
                                  1000ULL); // start timer during menu entry
         app_state->current_state = MENU_SETTINGS_STATE;
-        app_state->settings->current_item = END_OF_SETTINGS;
-        app_state->settings->next_item = SCREEN_LIGHT_SITEM;
+        settings->current_item = END_OF_SETTINGS;
+        settings->next_item = BRIGHTNESS_SITEM;
+        settings->scroll_offset=0;
         break;
       default:
         break;
@@ -221,9 +281,10 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
 
     case MENU_SETTINGS_STATE:
 
-      switch (app_state->settings->current_item) {
+      switch (settings->current_item) {
 
-      case SCREEN_LIGHT_SITEM:
+      case BRIGHTNESS_SITEM:
+
         break;
       case THEME_COLOR_SITEM:
         break;
@@ -292,7 +353,8 @@ static void render_app(AppState *app_state, uint64_t dt) {
     break;
 
   case MENU_SETTINGS_STATE:
-    if (render_menu(app_state->settings, false)) {
+    if (render_menu(menu_get_submenu_at(app_state->menu, SETTINGS_MITEM),
+                    false)) {
       should_flush = true;
     }
     break;
@@ -330,22 +392,9 @@ void app_task(void *pvParameters) {
   telegram_msg_memory_queue = createQueue(sizeof(TelegramMessage));
   local_app_event_queue = createQueue(sizeof(uint32_t));
 
-  // create timer for menu timeout
-  const esp_timer_create_args_t menu_timeout_timer_args = {
-      .callback = &menu_timeout_callback, .name = "menu_timeout"};
-  ESP_ERROR_CHECK(
-      esp_timer_create(&menu_timeout_timer_args, &menu_timeout_timer));
+  pet_stat_Mutex = xSemaphoreCreateMutex();
 
-  const esp_timer_create_args_t hud_timeout_timer_args = {
-      .callback = &hud_timeout_callback, .name = "hud_timeout"};
-  ESP_ERROR_CHECK(
-      esp_timer_create(&hud_timeout_timer_args, &hud_timeout_timer));
-
-  const esp_timer_create_args_t sleep_timeout_timer_args = {
-      .callback = &sleep_timeout_callback,
-      .name = "sleep_timeout",};
-  ESP_ERROR_CHECK(
-      esp_timer_create(&sleep_timeout_timer_args, &sleep_timeout_timer));
+  timers_init();
 
   init_app_state(&app_state);
   // at the begginign we should also take from nvm queue with telegram messages
@@ -389,12 +438,4 @@ void app_task(void *pvParameters) {
 }
 
 // TODO - zrobic ustawienia? PWM sterowanie podswietleniem? :)
-//  w ustawieniach moze tez byc timeout bo jakim przygasza sie wyswietlacz
-
-// TODO na jutro:
-/*
-
-2. dorobienie animacji feed i pet - akywacja podczas wcisniecia
-
-
-*/
+//

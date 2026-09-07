@@ -413,29 +413,36 @@ bool render_menu(Menu *menu, bool new_message) {
     x_text_offset = 27;
   }
 
+  // current displayed menuItems
+
+
   clear_background(BLACK);
 
-  for (int i = 0; i < menu->menu_count; i++) {
+  uint8_t en = 0;
+
+  for (int i = menu->scroll_offset;
+       i < menu->scroll_offset + MENU_VISIBLE_ITEMS; i++) {
 
     if (menu->next_item == i) { // highlight next_item
-      draw_rect(0, 3 + i * 30, MAX_WIDTH, 30, true, BLUE);
+      draw_rect(0, 3 + en * 30, MAX_WIDTH, 30, true, BLUE);
 
-      menu->current_item = (MenuItem)i; // current item is next_item
+      menu->current_item = i; // current item is next_item
     }
 
-    draw_text(x_text_offset, 13 + i * 30, menu->menu_items[i], &PressStart2P13,
+    draw_text(x_text_offset, 13 + en * 30, menu->menu_items[i], &PressStart2P13,
               WHITE, 1, MAX_WIDTH, NULL);
     // draw_sprite(3, 10, &message_mail, false);
 
     if (sprites) {
       if (i == SHOW_MESSAGE_MITEM) {
         if (!new_message || !blink) {
-          draw_sprite(4, 10 + i * 30, menu->menu_sprites[i], false);
+          draw_sprite(4, 10 + en * 30, menu->menu_sprites[i], false);
         }
       } else {
-        draw_sprite(4, 10 + i * 30, menu->menu_sprites[i], false);
+        draw_sprite(4, 10 + en * 30, menu->menu_sprites[i], false);
       }
     }
+    en++;
   }
   change_flushed = true;
   return true;
