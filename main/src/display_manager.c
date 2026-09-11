@@ -6,9 +6,8 @@
 #include "graphic.h"
 #include "hal/lcd_types.h"
 #include <machine/endian.h>
-#include <string.h>
 
-static const char *TAG = "Display Manager";
+//static const char *TAG = "Display Manager";
 
 
 static const st7735_lcd_init_cmd_t waveshare_init_cmds[] = {

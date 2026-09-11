@@ -5,3 +5,4 @@ python3 sprite_generator.py assets/whiskers
 python3 sprite_generator.py assets/flush
 python3 sprite_generator.py assets/menu_sprites
 python3 sprite_generator.py assets/hud
+python3 sprite_generator.py assets/bubble

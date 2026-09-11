@@ -1,5 +1,6 @@
 #include "telegram_client.h"
 #include "cJSON.h"
+#include "esp_attr.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -7,10 +8,48 @@
 #include "secrets.h"
 #include "system_events.h"
 #include "wifi_manager.h"
+#include <time.h>
 
 static const char *TAG = "Telegram Client";
-static int64_t telegram_offset = 0; // Offset for Telegram updates
+RTC_DATA_ATTR static int64_t telegram_offset = 0; // Offset for Telegram updates
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
+static esp_http_client_handle_t client;
+
+esp_err_t send_telegram_message(int64_t chat_id, const char *text) {
+  char url[128];
+  char post_data[512];
+
+  snprintf(url, sizeof(url), "https://api.telegram.org/bot%s/sendMessage",
+           BOT_TOKEN);
+
+  snprintf(post_data, sizeof(post_data), "{\"chat_id\":%lld,\"text\":\"%s\"}",
+           chat_id, text);
+
+  esp_http_client_set_url(client, url);
+  esp_http_client_set_method(client, HTTP_METHOD_POST);
+  esp_http_client_set_header(client, "Content-Type", "application/json");
+  esp_http_client_set_post_field(client, post_data, strlen(post_data));
+
+  esp_err_t err = esp_http_client_perform(client);
+
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "HTTP request failed: %s", esp_err_to_name(err));
+  } else {
+    int status = esp_http_client_get_status_code(client);
+
+    ESP_LOGI(TAG, "Telegram HTTP status: %d", status);
+
+    if (status != 200) {
+      ESP_LOGE(TAG, "Telegram sendMessage failed");
+    }
+  }
+
+  esp_http_client_set_post_field(client, NULL, 0);
+  esp_http_client_set_method(client, HTTP_METHOD_GET);
+
+  return err;
+}
 
 /*
  * @brief Function to parse the Telegram message JSON response.
@@ -51,6 +90,8 @@ static void parse_send_Telegram_msg(const char *msg) {
 
           cJSON *from = cJSON_GetObjectItem(message, "from");
 
+          cJSON *tDate = cJSON_GetObjectItem(message, "date");
+
           cJSON *from_id = cJSON_GetObjectItem(from, "id");
 
           if (cJSON_IsString(text) && cJSON_IsNumber(from_id)) {
@@ -58,6 +99,7 @@ static void parse_send_Telegram_msg(const char *msg) {
             TelegramMessage telegram_msg = {0};
 
             telegram_msg.chat_id = (int64_t)from_id->valuedouble;
+            telegram_msg.timestamp = (time_t)tDate->valuedouble;
 
             char *text_buffer = text->valuestring;
             size_t text_length = strlen(text_buffer);
@@ -69,13 +111,17 @@ static void parse_send_Telegram_msg(const char *msg) {
             strncpy(telegram_msg.text, text_buffer,
                     MAX_TELEGRAM_MESSAGE_LENGTH - 1);
             telegram_msg.text[MAX_TELEGRAM_MESSAGE_LENGTH - 1] = '\0';
+            if (telegram_msg.chat_id == CHAT_ID) {
+              if (xQueueSend(telegram_lcd_queue, &telegram_msg,
+                             portMAX_DELAY) != pdPASS) {
+                ESP_LOGE(TAG, "Failed to send message to queue");
 
-            if (xQueueSend(telegram_lcd_queue, &telegram_msg, portMAX_DELAY) !=
-                pdPASS) {
-              ESP_LOGE(TAG, "Failed to send message to queue");
-
-            } else {
-              ESP_LOGI(TAG, "Message sent to queue: %s", telegram_msg.text);
+              } else {
+                ESP_LOGI(TAG, "Message sent to queue: %s", telegram_msg.text);
+              }
+            }
+            else{
+                ESP_LOGI(TAG, "Someone sent a message from bad chat ID! ID:%llu", telegram_msg.chat_id);
             }
           }
         }
@@ -190,7 +236,7 @@ void telegram_task(void *pvArguments) {
   xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdFALSE,
                       portMAX_DELAY);
 
-  esp_http_client_handle_t client = esp_http_client_init(&config);
+  client = esp_http_client_init(&config);
 
   while (1) {
     // Make sure we are connected to WiFi before making the request
@@ -198,8 +244,8 @@ void telegram_task(void *pvArguments) {
                         portMAX_DELAY);
 
     snprintf(url, sizeof(url),
-             "https://api.telegram.org/bot%s/getUpdates?offset=%lld&limit=1", BOT_TOKEN,
-             telegram_offset);
+             "https://api.telegram.org/bot%s/getUpdates?offset=%lld&limit=30",
+             BOT_TOKEN, telegram_offset);
 
     esp_http_client_set_url(client, url);
 
@@ -212,7 +258,7 @@ void telegram_task(void *pvArguments) {
                esp_http_client_get_content_length(client));
 
       parse_send_Telegram_msg(local_response_buffer);
-      
+
       local_response_buffer[0] = '\0'; // Clear the buffer for the next response
 
     } else {

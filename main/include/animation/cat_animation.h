@@ -1,8 +1,6 @@
 #ifndef CAT_ANIMATION_H
 #define CAT_ANIMATION_H
 
-//#define CAT_LAYER_COUNT 8
-
 #include "animation/animation.h"
 typedef enum {
   CAT_LAYER_BUBBLE,
@@ -22,5 +20,7 @@ extern Animation cat_look_left_right_animation;
 extern Animation cat_new_message_animation;
 extern Animation cat_eating_animation;
 extern Animation cat_petting_animation;
+extern Animation cat_sad_animation;
+extern Animation cat_sleeping_animation;
 
 #endif

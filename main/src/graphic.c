@@ -13,10 +13,12 @@
 #include "sprites/menu_sprites.h"
 #include "sprites/sprite.h"
 #include "stdio.h"
+#include "system_events.h"
 #include "telegram_client.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 uint16_t framebuffer[LCD_WIDTH * LCD_HEIGHT] = {0};
 
 void draw_pixel_portrait(int x, int y, uint16_t color) {
@@ -415,7 +417,6 @@ bool render_menu(Menu *menu, bool new_message) {
 
   // current displayed menuItems
 
-
   clear_background(BLACK);
 
   uint8_t en = 0;
@@ -478,9 +479,27 @@ bool render_hud(AppState *app_state, bool animation_changed) {
   if (app_state->hud_rendered == true && !animation_changed) {
     return false;
   }
+  // draw time
+  time_t now;
+  struct tm timeinfo;
+
+  time(&now);
+  localtime_r(&now, &timeinfo);
+  char time_str[6];
+  snprintf(time_str, sizeof(time_str), "%02d:%02d", timeinfo.tm_hour,
+           timeinfo.tm_min);
+
+  draw_text(120, 0, time_str, &Tiny16, WHITE, 1, MAX_WIDTH, NULL);
+
+  EventBits_t WifiBits;
+  WifiBits = xEventGroupGetBits(wifi_event_group);
+  if (WifiBits == WIFI_CONNECTED_BIT) {
+    draw_sprite(100, 1, &wifi, false);
+  }
+
   // draw_rect(0, 0, MAX_WIDTH, 15, false, BLUE);
   if (app_state->telegram_msg_memory->currSize > 0) {
-    draw_sprite(MAX_WIDTH - 20, 0, &message_new, 0);
+    draw_sprite(80, 3, &message_new, 0);
   }
   float hunger = app_state->pet_status.hungry_status;
   float happines = app_state->pet_status.happiness;

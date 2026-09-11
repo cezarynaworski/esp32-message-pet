@@ -20,7 +20,7 @@ static const char *settings_items[END_OF_SETTINGS] = {
     [SCREEN_TIMEOUT_SITEM] = "SLEEP TIME",
     [CONFIG_WIFI_SITEM] = "CONFIG WIFI",
     [TEST_SITEM] = "TEST",
-[TEST2_SITEM]="TEST2"};
+    [TEST2_SITEM] = "TEST2"};
 
 Menu settings = {.menu_items = settings_items,
                  .menu_count = END_OF_SETTINGS,

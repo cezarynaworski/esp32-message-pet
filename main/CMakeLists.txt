@@ -5,6 +5,7 @@ idf_component_register(SRCS "src/main.c"
                             "src/graphic.c"
                             "src/fonts/font.c"
                             "src/sprites/eye.c"
+                            "src/sprites/bubble.c"
                             "src/sprites/mouth.c"
                             "src/sprites/whiskers.c"
                             "src/sprites/flush.c"
@@ -30,7 +31,8 @@ idf_component_register(SRCS "src/main.c"
                                   esp_timer
                                   mbedtls
                                   driver
-                                  esp_lcd)
+                                  esp_lcd
+                                  lwip)
 
 
 

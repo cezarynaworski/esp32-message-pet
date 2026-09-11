@@ -46,7 +46,7 @@ void buttons_task(void *arg) {
       } else {
         if (main_button_pressed) {
           
-          ESP_LOGE(TAG, "Single Click");
+          //ESP_LOGE(TAG, "Single Click");
           queue_event = BUTTON1_SINGLE_CLICK;
           main_button_pressed = false;
           esp_timer_stop(long_press_timer);
@@ -58,7 +58,7 @@ void buttons_task(void *arg) {
     case NOTIFY_MAIN_BUTTON_LONG_CLICK:
       if (main_button_pressed) {
         queue_event = BUTTON1_LONG_PRESS;
-        ESP_LOGE(TAG, "LONG_PRESS");
+        //ESP_LOGE(TAG, "LONG_PRESS");
         main_button_pressed = false; // reset main button press so we wont have
                                      // single click after that
         esp_timer_stop(long_press_timer);

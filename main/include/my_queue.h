@@ -19,9 +19,9 @@ typedef struct myQueue {
     Node* rear;
 } myQueue;
 
-myQueue* createQueue(size_t element_size);
+myQueue* createQueue(size_t element_size, uint8_t max_size);
 bool isEmpty(myQueue* q);
-void enqueue(myQueue* q, void* data);
+bool enqueue(myQueue* q, void* data);
 bool dequeue(myQueue* q, void *data) ;
 void* getFront(myQueue* q);
 

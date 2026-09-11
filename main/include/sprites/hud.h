@@ -14,3 +14,4 @@ extern const Sprite hud_hungry_25;
 extern const Sprite hud_hungry_50;
 extern const Sprite hud_hungry_75;
 extern const Sprite message_new;
+extern const Sprite wifi;

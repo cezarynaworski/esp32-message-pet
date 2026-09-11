@@ -5,6 +5,7 @@
 #include "buttons.h"
 #include "display_manager.h"
 #include "esp_log.h"
+#include "esp_random.h"
 #include "esp_sleep.h"
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
@@ -18,9 +19,17 @@
 #include "system_events.h"
 #include "telegram_client.h"
 #include <stdint.h>
+#include <sys/time.h>
+#include "time.h"
+#include "secrets.h"
+
 static const char *tag = "robot";
 
 RTC_DATA_ATTR static AppState app_state;
+RTC_DATA_ATTR static TelegramMessage
+    saved_telegram_messages[TELEGRAM_MESSAGES_IN_RTC];
+RTC_DATA_ATTR uint8_t saved_message_count = 0;
+
 static myQueue *telegram_msg_memory_queue;
 static myQueue *local_app_event_queue;
 
@@ -45,6 +54,20 @@ static void hud_timeout_callback(void *arg) {
 }
 
 static void sleep_timeout_callback(void *arg) {
+
+  // save message queue to RTC Data
+  saved_message_count = 0;
+
+  Node *node = telegram_msg_memory_queue->front;
+
+  while (node && saved_message_count < TELEGRAM_MESSAGES_IN_RTC) {
+    memcpy(&saved_telegram_messages[saved_message_count], node->data,
+           sizeof(TelegramMessage));
+
+    saved_message_count++;
+    node = node->next;
+  }
+  ESP_LOGI(tag, "saved %d messages", saved_message_count);
   gpio_set_level(PIN_NUM_BCKL, 0);
   gpio_hold_en(PIN_NUM_BCKL);
   gettimeofday(&(app_state.sleep_enter_time), NULL);
@@ -87,13 +110,40 @@ static void timers_init() {
   ESP_ERROR_CHECK(esp_timer_create(&pet_update_timer_args, &pet_update_timer));
 }
 
+struct tm  get_current_time(void) {
+  time_t now;
+  struct tm timeinfo;
+
+  time(&now);
+  localtime_r(&now, &timeinfo);
+
+  return timeinfo;
+}
 // help function so i dont to repeat it every time
 static void go_idle_state(AppState *app_state) {
   app_state->current_state = CAT_IDLE_STATE;
 
-  // add calculate_Pet_state to define animation
+  int hour = get_current_time().tm_hour;
 
-  app_state->current_animation = &cat_blinking_animation;
+  if (app_state->pet_status.hungry_status < 25 ||
+      app_state->pet_status.happiness < 25) {
+    app_state->current_animation = &cat_sad_animation;
+
+  } else if (hour >= 22 || hour < 8) {
+    app_state->current_animation = &cat_sleeping_animation;
+  } else {
+    uint32_t r = esp_random() % 100;
+    if (r < 20) {
+      app_state->current_animation =
+          (app_state->current_animation != &cat_look_around_animation)
+              ? &cat_look_around_animation
+              : &cat_blinking_animation;
+    } else if (r < 60) {
+      app_state->current_animation = &cat_look_left_right_animation;
+    } else // default loop animation
+      app_state->current_animation = &cat_blinking_animation;
+  }
+
   animation_reset(app_state->current_animation);
 
   esp_timer_start_once(sleep_timeout_timer, SLEEP_TIMEOUT_MS * 1000ULL);
@@ -119,10 +169,21 @@ static void render_default(AppState *app_state, bool *should_flush,
 }
 
 static void init_app_state(AppState *app_state) {
+  app_state->menu = &menu;
+  app_state->telegram_msg_memory = telegram_msg_memory_queue;
 
   esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
 
   if (cause == ESP_SLEEP_WAKEUP_EXT0) {
+
+    // restore telegram messages:
+    for (int i = 0; i < saved_message_count; i++) {
+
+      bool result= enqueue(app_state->telegram_msg_memory, &saved_telegram_messages[i]);
+      if (!result)
+        ESP_LOGE(tag, "Could not restore telegram message");
+    }
+
     // obsługa wake-up
     struct timeval now;
     gettimeofday(&now, NULL);
@@ -130,21 +191,16 @@ static void init_app_state(AppState *app_state) {
         (now.tv_sec - app_state->sleep_enter_time.tv_sec) * 1000 +
         (now.tv_usec - app_state->sleep_enter_time.tv_usec) / 1000;
     update_pet_status(&app_state->pet_status, sleep_time_ms);
-    ESP_LOGW(tag, "Deep sleep wakeup, sleep duration:%llu", sleep_time_ms);
+    ESP_LOGI(tag, "Deep sleep wakeup, sleep duration:%llu", sleep_time_ms);
+
   } else {
+
     app_state->pet_status.happiness = 100;
     app_state->pet_status.hungry_status = 100;
   }
 
-  // add calculate_Pet_state to define animation
-
-  app_state->current_animation = &cat_blinking_animation;
-  app_state->current_state = CAT_IDLE_STATE;
-  app_state->menu = &menu;
-  app_state->telegram_msg_memory = telegram_msg_memory_queue;
+  go_idle_state(app_state);
   // app_state->settings = &settings;
-
-  esp_timer_start_once(sleep_timeout_timer, SLEEP_TIMEOUT_MS * 1000ULL);
 
   esp_timer_start_periodic(pet_update_timer, 60 * 1000000ULL);
 }
@@ -163,6 +219,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
       if (app_state->telegram_msg_memory->currSize > 0) {
         app_state->current_state = SHOW_NEXT_MESSAGE_STATE;
         dequeue(telegram_msg_memory_queue, &(app_state->current_message));
+
       } else {
         go_idle_state(app_state);
       }
@@ -190,8 +247,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
       }
       if (settings->next_item == 0) {
         settings->scroll_offset = 0;
-    }
-      ESP_LOGI(tag,"scroll_offset:%d, next item: %d", settings->scroll_offset, settings->next_item);
+      }
 
       esp_timer_start_once(menu_timeout_timer, MENU_TIMEOUT_MS * 1000ULL);
       break;
@@ -206,7 +262,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
       app_state->current_state = MENU_STATE;
       app_state->menu->current_item = END_OF_MENU;
       app_state->menu->next_item = SHOW_MESSAGE_MITEM;
-      app_state->menu->scroll_offset=0;
+      app_state->menu->scroll_offset = 0;
       esp_timer_stop(hud_timeout_timer);
       break;
     default:
@@ -272,7 +328,7 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
         app_state->current_state = MENU_SETTINGS_STATE;
         settings->current_item = END_OF_SETTINGS;
         settings->next_item = BRIGHTNESS_SITEM;
-        settings->scroll_offset=0;
+        settings->scroll_offset = 0;
         break;
       default:
         break;
@@ -316,17 +372,26 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
 
     switch (app_state->current_state) {
     case HUD_STATE:
-    case CAT_IDLE_STATE: // we want to play animation before we can dequeue msg
-                         // and show it. LWe will wait untill we are in
-                         // CAT_IDLE_STATE
-      app_state->current_animation = &cat_new_message_animation;
-      animation_reset(app_state->current_animation);
-      app_state->current_state = CAT_ANIMATION_STATE;
+    case CAT_IDLE_STATE: 
+    
+      if (app_state->current_animation != &cat_sad_animation) {
+        app_state->current_animation = &cat_new_message_animation;
+        animation_reset(app_state->current_animation);
+        app_state->current_state = CAT_ANIMATION_STATE;
+      }
       app_state->pending_telegram_message = false;
       app_state->hud_rendered = false;
+      esp_timer_stop(sleep_timeout_timer);
+      esp_timer_start_once(sleep_timeout_timer, SLEEP_TIMEOUT_MS * 1000ULL);
+
       break;
+
     default:
-      app_state->pending_telegram_message = true;
+      if (app_state->current_animation != &cat_new_message_animation) {
+        app_state->pending_telegram_message = true;
+      } else {
+        app_state->pending_telegram_message = false;
+      }
     }
     break;
 
@@ -364,6 +429,9 @@ static void render_app(AppState *app_state, uint64_t dt) {
     uint32_t app_event = NEW_MESSAGE_SHOWN;
     enqueue(local_app_event_queue, &app_event);
     should_flush = true;
+    esp_timer_stop(menu_timeout_timer);
+    esp_timer_start_once(menu_timeout_timer,
+                         READING_MESSAGE_TIMEOUT_MS * 1000ULL);
     break;
   case READING_MESSAGE_STATE:
     break;
@@ -389,8 +457,8 @@ void app_task(void *pvParameters) {
   uint32_t telegram_event = NEW_TELEGRAM_MESSAGE;
 
   // init local queues
-  telegram_msg_memory_queue = createQueue(sizeof(TelegramMessage));
-  local_app_event_queue = createQueue(sizeof(uint32_t));
+  telegram_msg_memory_queue = createQueue(sizeof(TelegramMessage), TELEGRAM_MESSAGES_IN_RTC);
+  local_app_event_queue = createQueue(sizeof(uint32_t), 50);
 
   pet_stat_Mutex = xSemaphoreCreateMutex();
 
@@ -410,11 +478,11 @@ void app_task(void *pvParameters) {
     TelegramMessage msg = {0};
     while (xQueueReceive(telegram_lcd_queue, (void *)&msg, 0) == pdTRUE) {
 
-      enqueue(telegram_msg_memory_queue, (void *)&msg); // send to MyQueue
-                                                        // buffor
-      // xQueueSend(app_event_queue, &telegram_event,
-      //          0); // send event to xQueue (RTOS)
-      enqueue(local_app_event_queue, (void *)&telegram_event);
+      if (enqueue(telegram_msg_memory_queue, (void *)&msg))
+        enqueue(local_app_event_queue, (void *)&telegram_event);
+      else{
+        send_telegram_message(CHAT_ID, "Maximum message limit in memory reached");
+      }
 
       msg.text[0] = '\0';
       msg.chat_id = 0;

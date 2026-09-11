@@ -5,7 +5,7 @@
 #include "sprites/mouth.h"
 #include "sprites/sprite.h"
 #include "sprites/whiskers.h"
-
+#include "sprites/bubble.h"
 // Default / blinking
 static const Sprite *cat_default_layers[CAT_LAYER_COUNT] = {
     [CAT_LAYER_LEFT_EYE] = &eye,
@@ -320,6 +320,112 @@ static const Sprite *cat_petting_layers_7[CAT_LAYER_COUNT] = {
     [CAT_LAYER_LEFT_FLUSH] = &flush,
     [CAT_LAYER_RIGHT_FLUSH] = &flush};
 
+
+static const Sprite *cat_sad_layers_1[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_sad_left,
+    [CAT_LAYER_RIGHT_EYE] = &eye_sad_right,
+    [CAT_LAYER_MOUTH] = &mouth_sad,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+
+static const Sprite *cat_sad_layers_2[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_sad_blink_left,
+    [CAT_LAYER_RIGHT_EYE] = &eye_sad_blink_right,
+    [CAT_LAYER_MOUTH] = &mouth_sad,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+
+static const Sprite *cat_sad_layers_3[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth_sad_2,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_sad_layers_4[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_sad_blink_left,
+    [CAT_LAYER_RIGHT_EYE] = &eye_sad_blink_right,
+    [CAT_LAYER_MOUTH] = &mouth_sad_2,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_sad_layers_5[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_cry_left,
+    [CAT_LAYER_RIGHT_EYE] = &eye_cry_right,
+    [CAT_LAYER_MOUTH] = &mouth_sad_2,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+static const Sprite *cat_sad_layers_6[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_cry_left,
+    [CAT_LAYER_RIGHT_EYE] = &eye_cry_right,
+    [CAT_LAYER_MOUTH] = &mouth_sad,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+
+
+static const Sprite *cat_sleeping_layers_1[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker};
+
+
+static const Sprite *cat_sleeping_layers_2[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker,
+    [CAT_LAYER_BUBBLE]= &bubble_small};
+
+static const Sprite *cat_sleeping_layers_3[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker,
+    [CAT_LAYER_BUBBLE]= &bubble_medium};
+
+
+
+static const Sprite *cat_sleeping_layers_4[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_LEFT_EYE] = &eye_closed,
+    [CAT_LAYER_RIGHT_EYE] = &eye_closed,
+    [CAT_LAYER_MOUTH] = &mouth,
+    [CAT_LAYER_LEFT_WHISKER] = &whisker,
+    [CAT_LAYER_RIGHT_WHISKER] = &whisker,
+    [CAT_LAYER_BUBBLE]= &bubble_big};
+
+
+static const LayerOffset cat_sleeping_offset_1[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_BUBBLE] = {.x = 75, .y=65},
+};
+
+static const LayerOffset cat_sleeping_offset_2[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_BUBBLE] = {.x = 85, .y=50},
+};
+
+static const LayerOffset cat_sleeping_offset_3[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_BUBBLE] = {.x = 95, .y=35},
+};
+
+static const LayerOffset cat_sleeping_offset_4[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_BUBBLE] = {.x = 105, .y=20},
+};
+
+static const LayerOffset cat_sleeping_offset_5[CAT_LAYER_COUNT] = {
+    [CAT_LAYER_BUBBLE] = {.x = 115, .y=5},
+};
+
+
+
+
+
 // Default layers positions
 static const LayerInfo cat_default_layer_info[CAT_LAYER_COUNT] = {
     [CAT_LAYER_LEFT_EYE] = {.x = 20, .y = 25, .width = 40, .height = 45},
@@ -405,7 +511,7 @@ Animation cat_look_around_animation = {
 Animation cat_look_left_right_animation = {
     .frames =
         (const AnimationFrame[]){
-            {.layers = cat_default_layers, .duration_ms = 1000},
+            {.layers = cat_default_layers, .duration_ms = 3000},
 
             {.layers = cat_eyes_left_layers,
              .duration_ms = 1000,
@@ -505,7 +611,56 @@ Animation cat_petting_animation = {
     .loop = false,
 
 };
+//cat constant petting animation (with touch sensor)
+Animation cat_sad_animation = {
+    .frames =
+        (const AnimationFrame[]){
 
-// cat sad animation (hungry)
+            {.layers = cat_sad_layers_1, .duration_ms = 3000},
 
-// cat yawning animation
+            {.layers = cat_sad_layers_2, .duration_ms = 150},
+            {.layers = cat_sad_layers_3, .duration_ms = 300},
+            {.layers = cat_sad_layers_4, .duration_ms = 150},
+
+            {.layers = cat_sad_layers_5, .duration_ms = 500},
+            {.layers = cat_sad_layers_6, .duration_ms = 3000},
+
+            {.layers = cat_sad_layers_2, .duration_ms = 150},
+            {.layers = cat_sad_layers_3, .duration_ms = 300},
+            {.layers = cat_sad_layers_4, .duration_ms = 150},
+            
+
+        },
+    .layer_info = cat_default_layer_info,
+
+    .layer_count = CAT_LAYER_COUNT,
+    .frame_count = 9,
+    .loop = true,
+
+};
+
+
+Animation cat_sleeping_animation = {
+    .frames =
+        (const AnimationFrame[]){
+
+            {.layers = cat_sleeping_layers_1, .duration_ms = 1000},
+
+            {.layers = cat_sleeping_layers_2, .duration_ms = 1000, .layer_offset=cat_sleeping_offset_1},
+            {.layers = cat_sleeping_layers_3, .duration_ms = 1000, .layer_offset=cat_sleeping_offset_1},
+            {.layers = cat_sleeping_layers_4, .duration_ms = 1000, .layer_offset=cat_sleeping_offset_1},
+            {.layers = cat_sleeping_layers_4, .duration_ms = 1000, .layer_offset=cat_sleeping_offset_2},
+            {.layers = cat_sleeping_layers_4, .duration_ms = 1000, .layer_offset=cat_sleeping_offset_3},
+            {.layers = cat_sleeping_layers_4, .duration_ms = 1000, .layer_offset=cat_sleeping_offset_4},
+            {.layers = cat_sleeping_layers_4, .duration_ms = 1000, .layer_offset=cat_sleeping_offset_5},
+            
+
+        },
+    .layer_info = cat_default_layer_info,
+
+    .layer_count = CAT_LAYER_COUNT,
+    .frame_count = 8,
+    .loop = true,
+
+};
+
