@@ -386,8 +386,9 @@ bool render_animation(Animation *anim) {
   return true;
 }
 
-bool render_menu(Menu *menu, bool new_message) {
+bool render_menu(Menu *menu, bool new_message, SettingsValues* settings_values) {
 
+  uint16_t color = settings_values->theme_color;
   bool sprites = false;
   uint8_t x_text_offset = 5;
   static bool blink = false;
@@ -425,7 +426,7 @@ bool render_menu(Menu *menu, bool new_message) {
        i < menu->scroll_offset + MENU_VISIBLE_ITEMS; i++) {
 
     if (menu->next_item == i) { // highlight next_item
-      draw_rect(0, 3 + en * 30, MAX_WIDTH, 30, true, BLUE);
+      draw_rect(0, 3 + en * 30, MAX_WIDTH, 30, true, color);
 
       menu->current_item = i; // current item is next_item
     }

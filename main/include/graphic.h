@@ -42,7 +42,7 @@ DrawStatus draw_text(int x, int y, const char *text, const Font *font,
 
 void draw_sprite(int x, int y, const Sprite *sprite, bool mirror_horizontal);
 bool render_animation(Animation *anim);
-bool render_menu(Menu *menu, bool new_message);
+bool render_menu(Menu *menu, bool new_message, SettingsValues* settings_values);
 void render_messages(TelegramMessage *message, uint8_t msg_left);
 bool render_hud(AppState *app_state, bool animation_changed);
 
