@@ -492,6 +492,10 @@ bool render_hud(AppState *app_state, bool animation_changed) {
 
   draw_text(120, 0, time_str, &Tiny16, WHITE, 1, MAX_WIDTH, NULL);
 
+  char battery_soc[5];
+  snprintf(battery_soc, sizeof(battery_soc), "%.0f%%", app_state->battery_soc);
+  draw_text(50, 0, battery_soc, &Tiny16, WHITE, 1, MAX_WIDTH, NULL);
+
   EventBits_t WifiBits;
   WifiBits = xEventGroupGetBits(wifi_event_group);
   if (WifiBits == WIFI_CONNECTED_BIT) {

@@ -5,6 +5,7 @@
 #include "buttons.h"
 #include "display_manager.h"
 #include "driver/ledc.h"
+#include "esp_err.h"
 #include "esp_log.h"
 #include "esp_random.h"
 #include "esp_sleep.h"
@@ -13,6 +14,7 @@
 #include "freertos/projdefs.h"
 #include "freertos/semphr.h"
 #include "graphic.h"
+#include "include/max17048.h"
 #include "macro.h"
 #include "menu.h"
 #include "my_cololors.h"
@@ -25,6 +27,8 @@
 #include "time.h"
 #include <stdint.h>
 #include <sys/time.h>
+
+
 static const char *tag = "robot";
 
 RTC_DATA_ATTR static AppState app_state;
@@ -36,11 +40,14 @@ static myQueue *local_app_event_queue;
 
 SemaphoreHandle_t pet_stat_Mutex;
 
+
 static esp_timer_handle_t menu_timeout_timer;
 static esp_timer_handle_t hud_timeout_timer;
 static esp_timer_handle_t sleep_timeout_timer;
 
 static esp_timer_handle_t pet_update_timer;
+static esp_timer_handle_t battery_update_timer;
+
 
 static void menu_timeout_callback(void *arg) {
   BaseType_t higher_priority_task_woken = pdFALSE;
@@ -69,8 +76,8 @@ static void sleep_timeout_callback(void *arg) {
   }
   ESP_LOGI(tag, "saved %d messages", saved_message_count);
   ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
-  
-gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
+
+  gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
   gpio_set_level(PIN_NUM_BCKL, 0);
   gpio_hold_en(PIN_NUM_BCKL);
   gettimeofday(&(app_state.sleep_enter_time), NULL);
@@ -83,7 +90,10 @@ static void pet_update_callback(void *arg) {
     xSemaphoreGive(pet_stat_Mutex);
   }
 }
-
+static void battery_update_callback(void *arg) {
+  //i asume that float 32 bits operations are atomic so we can skip mutex
+  max17048_read_soc(&app_state.battery_soc);
+}
 static void timers_init() {
   // create timer for menu timeout
   const esp_timer_create_args_t menu_timeout_timer_args = {.callback = &menu_timeout_callback,
@@ -96,21 +106,26 @@ static void timers_init() {
   const esp_timer_create_args_t hud_timeout_timer_args = {.callback = &hud_timeout_callback, .name = "hud_timeout"};
   ESP_ERROR_CHECK(esp_timer_create(&hud_timeout_timer_args, &hud_timeout_timer));
 
-  // create timer for sleep
-  // timeout
+  
   const esp_timer_create_args_t sleep_timeout_timer_args = {
       .callback = &sleep_timeout_callback,
       .name = "sleep_timeout",
   };
   ESP_ERROR_CHECK(esp_timer_create(&sleep_timeout_timer_args, &sleep_timeout_timer));
 
-  // create timer for sleep
-  // timeout
+  
   const esp_timer_create_args_t pet_update_timer_args = {
       .callback = &pet_update_callback,
       .name = "pet_update",
   };
   ESP_ERROR_CHECK(esp_timer_create(&pet_update_timer_args, &pet_update_timer));
+
+
+  const esp_timer_create_args_t battery_update_timer_args = {
+      .callback = &battery_update_callback,
+      .name = "battery_update",
+  };
+  ESP_ERROR_CHECK(esp_timer_create(&battery_update_timer_args, &battery_update_timer));
 }
 
 struct tm get_current_time(void) {
@@ -235,9 +250,14 @@ static void init_app_state(AppState *app_state) {
     app_state->pet_status.happiness = 100;
     app_state->pet_status.hungry_status = 100;
   }
+  
+  ESP_ERROR_CHECK(max17048_read_soc(&app_state->battery_soc));
+  ESP_ERROR_CHECK(max17048_force_hibernate());
+  
 
   go_idle_state(app_state);
   esp_timer_start_periodic(pet_update_timer, 60 * 1000000ULL);
+  esp_timer_start_periodic(battery_update_timer, 60 * 1000000ULL);
 }
 
 static void update_app_state(uint32_t app_event, AppState *app_state) {
@@ -355,21 +375,21 @@ static void update_app_state(uint32_t app_event, AppState *app_state) {
 
         switch (app_state->current_menu->current_item) {
         case TWOFIVE_BITEM:
-          app_state->settings_values->screen_brightness = 1024/4;
+          app_state->settings_values->screen_brightness = 1024 / 4;
           ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, settings_values.screen_brightness));
           ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
           write_nvs_memory();
           go_idle_state(app_state);
           break;
         case FIVEZERO_BITEM:
-          app_state->settings_values->screen_brightness = 1024/2;
+          app_state->settings_values->screen_brightness = 1024 / 2;
           ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, settings_values.screen_brightness));
           ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
           write_nvs_memory();
           go_idle_state(app_state);
           break;
         case SEVENFIVE_BITEM:
-          app_state->settings_values->screen_brightness = 1024*3/4;
+          app_state->settings_values->screen_brightness = 1024 * 3 / 4;
           ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, settings_values.screen_brightness));
           ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
           write_nvs_memory();

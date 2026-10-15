@@ -20,8 +20,28 @@
 #include "system_events.h"
 #include "telegram_client.h"
 #include <stdint.h>
+#include "driver/i2c_master.h"
+#include "include/max17048.h"
+#define I2C_SDA_IO 16
+#define I2C_SCL_IO 17
 static const char *TAG = "main";
+static i2c_master_bus_handle_t i2c_bus;
 
+static esp_err_t i2c_bus_init() {
+  i2c_master_bus_config_t bus_config = {
+      .i2c_port = I2C_NUM_0,
+      .sda_io_num = I2C_SDA_IO,
+      .scl_io_num = I2C_SCL_IO,
+      .clk_source = I2C_CLK_SRC_DEFAULT,
+      .glitch_ignore_cnt = 7,
+      .flags.enable_internal_pullup = false,
+  };
+  esp_err_t err = i2c_new_master_bus(&bus_config, &i2c_bus);
+  if (err != ESP_OK)
+    return err;
+
+  return max17048_add_device_to_bus(&i2c_bus);
+}
 static void set_time() {
   // set time
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
@@ -93,7 +113,7 @@ void app_main(void) {
   read_nvs_memory();
   events_init();
   display_init();
-
+  ESP_ERROR_CHECK(i2c_bus_init());
   // Create a queue for Telegram messages to be sent to the LCD task
   telegram_lcd_queue = xQueueGenericCreate(10, sizeof(TelegramMessage), queueQUEUE_TYPE_SET);
   // create a queue for buttons

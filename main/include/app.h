@@ -36,6 +36,7 @@ typedef struct {
   PetStatus pet_status;         //we lose PetStatus after Power lose
   struct timeval sleep_enter_time;
   SettingsValues *settings_values; // we init that in main from nvm
+  float battery_soc;
 } AppState;
 
 void app_task(void *pvParameters);
